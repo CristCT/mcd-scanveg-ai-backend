@@ -13,7 +13,7 @@ def main():
     # Crear la aplicación
     app = create_app(config_name)
     
-    print("🥕 MCD ScanVeg AI Backend")
+    print("🍅 MCD ScanVeg AI Backend")
     print("=" * 50)
     print(f"🌟 Entorno: {config_name}")
     print(f"🌐 Host: {Config.HOST}")

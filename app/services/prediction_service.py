@@ -31,7 +31,7 @@ class PredictionService:
             model_path = Config.MODEL_PATH
             
             if not os.path.exists(model_path):
-                logger.warning(f"Modelo no encontrado en {model_path}. Usando predicción simulada.")
+                logger.error(f"Modelo no encontrado en {model_path}. Servicio no disponible.")
                 return False
                 
             self.model = load_model(model_path)
@@ -83,8 +83,11 @@ class PredictionService:
         Returns:
             Dict con la predicción, confianza y otros datos
         """
+        logger.info(f"Iniciando predicción. Modelo cargado: {self.is_model_loaded}")
+        
         try:
             if self.is_model_loaded and self.model is not None:
+                logger.info("Usando modelo real para predicción")
                 processed_image = self.preprocess_image(image)
                 predictions = self.model.predict(processed_image, verbose=0)
                 
@@ -93,7 +96,7 @@ class PredictionService:
                 confidence = float(predictions[0][predicted_class_index])
                 predicted_class = self.class_names[predicted_class_index]
                 
-                return {
+                result = {
                     'prediction': predicted_class,
                     'confidence': round(confidence * 100, 2),
                     'all_predictions': {
@@ -102,9 +105,17 @@ class PredictionService:
                     },
                     'model_used': True
                 }
+                logger.info(f"Predicción con modelo real completada: {predicted_class}")
+                return result
+            else:
+                # Error: modelo no disponible
+                logger.error("Modelo de IA no disponible - servicio no puede procesar la imagen")
+                raise Exception("Modelo de clasificación no disponible")
                 
         except Exception as e:
             logger.error(f"Error durante la predicción: {str(e)}")
-
+            # Re-raise para que se maneje como error en routes
+            raise
+            return self._simulate_prediction()
 # Instancia global del servicio
 prediction_service = PredictionService()

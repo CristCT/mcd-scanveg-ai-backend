@@ -27,25 +27,50 @@ def scan_vegetable():
     try:
         # Verificar que se envió un archivo
         if 'image' not in request.files:
-            return error_response(
+            logger.warning("Request sin campo 'image'")
+            error_resp = error_response(
                 message="No se encontró el campo 'image' en la petición",
                 error_code="MISSING_IMAGE_FIELD"
             )
+            logger.info(f"Enviando error al frontend: {error_resp[0].get_json()}")
+            return error_resp
         
         file = request.files['image']
         
         # Procesar la imagen
         image = process_uploaded_image(file)
         if image is None:
-            return error_response(
+            logger.warning(f"Archivo de imagen inválido: {file.filename}")
+            error_resp = error_response(
                 message="Error al procesar la imagen. Verifique que sea un archivo de imagen válido.",
                 error_code="INVALID_IMAGE_FILE"
             )
+            return error_resp
         
         logger.info(f"Procesando imagen para clasificación: {file.filename}")
         
         # Realizar la predicción
         prediction_result = prediction_service.predict(image)
+        logger.info(f"Resultado de predicción: {prediction_result}")
+        logger.info(f"Tipo de resultado: {type(prediction_result)}")
+        
+        # Verificar que el resultado no sea None
+        if prediction_result is None:
+            logger.error("El servicio de predicción retornó None")
+            return error_response(
+                message="Error en el servicio de predicción",
+                status_code=500,
+                error_code="PREDICTION_SERVICE_ERROR"
+            )
+        
+        # Verificar que tenga las claves necesarias
+        if 'prediction' not in prediction_result:
+            logger.error(f"Resultado de predicción no tiene clave 'prediction': {prediction_result}")
+            return error_response(
+                message="Respuesta inválida del servicio de predicción",
+                status_code=500,
+                error_code="INVALID_PREDICTION_RESPONSE"
+            )
         
         # Preparar la respuesta
         response_data = {
@@ -67,18 +92,22 @@ def scan_vegetable():
         
         logger.info(f"Predicción exitosa: {prediction_result['prediction']} ({prediction_result['confidence']}%)")
         
-        return success_response(
+        success_resp = success_response(
             data=response_data,
             message="Clasificación completada exitosamente"
         )
+        logger.info(f"Enviando respuesta exitosa al frontend: {success_resp[0].get_json()}")
+        return success_resp
         
     except Exception as e:
         logger.error(f"Error durante la clasificación: {str(e)}")
-        return error_response(
-            message="Error interno del servidor durante la clasificación",
+        error_resp = error_response(
+            message="Error general del servicio",
             status_code=500,
-            error_code="INTERNAL_SERVER_ERROR"
+            error_code="SERVICE_ERROR"
         )
+        logger.info(f"Enviando error 500 al frontend: {error_resp[0].get_json()}")
+        return error_resp
 
 @main.route('/model/info', methods=['GET'])
 def model_info():

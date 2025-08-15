@@ -10,7 +10,7 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_IMAGE_SIZE', 5242880))  # 5MB por defecto
     
     # Configuración del modelo
-    MODEL_PATH = os.environ.get('MODEL_PATH', 'models/vegetable_classifier.keras')
+    MODEL_PATH = os.environ.get('MODEL_PATH', 'models/tomato_classifier.keras')
     ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'jpg,jpeg,png,gif').split(','))
     
     # Configuración del servidor

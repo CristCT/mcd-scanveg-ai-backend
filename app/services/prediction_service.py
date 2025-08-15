@@ -4,8 +4,7 @@ import requests
 from typing import Optional, Dict, Any
 import numpy as np
 from PIL import Image
-from tensorflow import keras
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 from config.config import Config
 
 logger = logging.getLogger(__name__)
@@ -14,7 +13,7 @@ class PredictionService:
     """Servicio para realizar predicciones con el modelo de IA"""
     
     def __init__(self):
-        self.model: Optional[keras.Model] = None
+        self.model: Optional[tf.keras.Model] = None
         self.class_names = [
             'Zanahoria', 'Brócoli', 'Tomate', 'Lechuga', 'Pimiento',
             'Cebolla', 'Papa', 'Apio', 'Pepino', 'Calabacín'
@@ -45,20 +44,22 @@ class PredictionService:
             response = requests.get(self.model_url, stream=True)
             response.raise_for_status()
             
-            # Guardar modelo con barra de progreso
+            # Guardar modelo con progreso optimizado
             total_size = int(response.headers.get('content-length', 0))
             downloaded_size = 0
+            last_log_size = 0
             
             with open(model_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
+                for chunk in response.iter_content(chunk_size=32768):  # Chunks más grandes
                     if chunk:
                         f.write(chunk)
                         downloaded_size += len(chunk)
                         
-                        # Log progreso cada 10MB
-                        if downloaded_size % (10 * 1024 * 1024) == 0:
+                        # Log progreso cada 25MB para reducir overhead
+                        if downloaded_size - last_log_size >= (25 * 1024 * 1024):
                             progress = (downloaded_size / total_size) * 100 if total_size > 0 else 0
-                            logger.info(f"📥 Descarga en progreso: {progress:.1f}%")
+                            logger.info(f"📥 Descarga: {progress:.0f}%")
+                            last_log_size = downloaded_size
             
             logger.info(f"✅ Modelo descargado exitosamente en {model_path}")
             return True
@@ -86,7 +87,7 @@ class PredictionService:
                 logger.error(f"Modelo no encontrado en {model_path} después de la descarga")
                 return False
                 
-            self.model = load_model(model_path)
+            self.model = tf.keras.models.load_model(model_path)
             self.is_model_loaded = True
             logger.info(f"✅ Modelo cargado exitosamente desde {model_path}")
             return True

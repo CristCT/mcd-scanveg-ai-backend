@@ -7,6 +7,10 @@ from PIL import Image
 import tensorflow as tf
 from config.config import Config
 
+# Configurar TensorFlow para compatibilidad
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+tf.config.experimental.enable_op_determinism()
+
 logger = logging.getLogger(__name__)
 
 class PredictionService:
@@ -87,7 +91,29 @@ class PredictionService:
                 logger.error(f"Modelo no encontrado en {model_path} después de la descarga")
                 return False
                 
-            self.model = tf.keras.models.load_model(model_path)
+            # Intentar múltiples métodos de carga para compatibilidad
+            try:
+                # Método 1: Carga estándar con tf.keras
+                self.model = tf.keras.models.load_model(model_path, compile=False)
+                logger.info("✅ Modelo cargado con tf.keras.models.load_model")
+            except Exception as e1:
+                logger.warning(f"⚠️ Fallo método 1: {str(e1)[:100]}...")
+                try:
+                    # Método 2: Carga con custom_objects vacío
+                    self.model = tf.keras.models.load_model(model_path, custom_objects={}, compile=False)
+                    logger.info("✅ Modelo cargado con custom_objects={}")
+                except Exception as e2:
+                    logger.warning(f"⚠️ Fallo método 2: {str(e2)[:100]}...")
+                    try:
+                        # Método 3: Carga con SavedModel
+                        self.model = tf.saved_model.load(model_path)
+                        logger.info("✅ Modelo cargado con tf.saved_model.load")
+                    except Exception as e3:
+                        logger.error(f"❌ Todos los métodos fallaron:")
+                        logger.error(f"   Método 1: {str(e1)[:100]}...")
+                        logger.error(f"   Método 2: {str(e2)[:100]}...")
+                        logger.error(f"   Método 3: {str(e3)[:100]}...")
+                        raise e1
             self.is_model_loaded = True
             logger.info(f"✅ Modelo cargado exitosamente desde {model_path}")
             return True

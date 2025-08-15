@@ -8,6 +8,25 @@ logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
 
+@main.route('/', methods=['GET'])
+def home():
+    """
+    Endpoint raíz - información básica del servicio
+    """
+    return success_response(
+        data={
+            "service": "MCD ScanVeg AI Backend",
+            "version": "1.0.0",
+            "status": "running",
+            "endpoints": {
+                "health": "/api/ping",
+                "scan": "/api/scan",
+                "model_info": "/api/model/info"
+            }
+        },
+        message="Bienvenido al backend de MCD ScanVeg AI"
+    )
+
 @main.route('/ping', methods=['GET'])
 def ping():
     """

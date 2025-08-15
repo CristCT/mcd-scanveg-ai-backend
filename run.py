@@ -3,6 +3,10 @@ import sys
 from app import create_app
 from config.config import Config
 
+# Variable para gunicorn
+config_name = os.environ.get('FLASK_ENV', 'production')
+app = create_app(config_name)
+
 def main():
     """
     Función principal para ejecutar la aplicación
